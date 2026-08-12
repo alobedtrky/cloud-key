@@ -1,0 +1,13 @@
+{
+  "products": [
+    {"id":"game-fc","name":"EA Sports FC — نسخة رقمية","category":"games","price":229,"oldPrice":279,"tag":"ألعاب","stock":20,"active":true,"description":"نسخة رقمية مع تسليم بيانات المنتج بعد اعتماد الطلب.","cover":"linear-gradient(135deg,#164932,#28b267)"},
+    {"id":"game-ac","name":"Assassin’s Creed — إصدار رقمي","category":"games","price":79,"oldPrice":99,"tag":"ألعاب","stock":12,"active":true,"description":"إصدار رقمي وتسليم إلكتروني.","cover":"linear-gradient(135deg,#2f2119,#8a4c23)"},
+    {"id":"steam-supermarket","name":"Supermarket Simulator — Steam","category":"games","price":45,"oldPrice":59,"tag":"Steam","stock":18,"active":true,"description":"منتج رقمي لمنصة Steam.","cover":"linear-gradient(135deg,#1b5890,#e49a2c)"},
+    {"id":"m365","name":"Microsoft 365 — اشتراك","category":"software","price":99,"oldPrice":129,"tag":"برامج","stock":25,"active":true,"description":"اشتراك رقمي. راجع تفاصيل المنتج قبل الشراء.","cover":"linear-gradient(135deg,#642dd6,#167de3)"},
+    {"id":"vpn-year","name":"VPN — اشتراك سنة","category":"vpn","price":119,"oldPrice":149,"tag":"VPN","stock":30,"active":true,"description":"اشتراك رقمي لمدة سنة.","cover":"linear-gradient(135deg,#103368,#2d6ee5)"},
+    {"id":"canva","name":"اشتراك تصميم رقمي","category":"subscriptions","price":39,"oldPrice":49,"tag":"تصميم","stock":15,"active":true,"description":"اشتراك رقمي لخدمة تصميم.","cover":"linear-gradient(135deg,#5a2db5,#14bdd1)"}
+  ],
+  "orders": [],
+  "coupons": [{"code":"CLOUD10","percent":10,"active":true}],
+  "codes": []
+}
