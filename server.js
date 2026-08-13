@@ -15,7 +15,7 @@ const loginAttempts=new Map();
 function readDB(){return JSON.parse(fs.readFileSync(DB_PATH,'utf8'))}
 function writeDB(db){const tmp=DB_PATH+'.tmp';fs.writeFileSync(tmp,JSON.stringify(db,null,2));fs.renameSync(tmp,DB_PATH)}
 function json(res,status,data){res.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'});res.end(JSON.stringify(data))}
-function body(req){return new Promise((resolve,reject)=>{let d='';req.on('data',c=>{d+=c;if(d.length>1e6){req.destroy();reject(new Error('Body too large'))}});req.on('end',()=>{try{resolve(d?JSON.parse(d):{})}catch(e){reject(e)}});req.on('error',reject)})}
+function body(req){return new Promise((resolve,reject)=>{let d='';req.on('data',c=>{d+=c;if(d.length>2500000){req.destroy();reject(new Error('Body too large'))}});req.on('end',()=>{try{resolve(d?JSON.parse(d):{})}catch(e){reject(e)}});req.on('error',reject)})}
 function parseCookies(req){return Object.fromEntries((req.headers.cookie||'').split(';').map(x=>x.trim()).filter(Boolean).map(x=>{const i=x.indexOf('=');return [x.slice(0,i),decodeURIComponent(x.slice(i+1))]}))}
 function getSession(req){const sid=parseCookies(req).ck_session,s=sid&&sessions.get(sid);if(!s)return null;if(Date.now()-s.created>28800000){sessions.delete(sid);return null}return s}
 function requireAdmin(req,res){if(!getSession(req)){json(res,401,{error:'unauthorized'});return false}return true}
@@ -24,28 +24,28 @@ function orderNo(){return 'CK-'+Date.now().toString(36).toUpperCase()+'-'+crypto
 function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||''))}
 function validPhone(v){return /^(\+?966|0)?5\d{8}$/.test(String(v||'').replace(/\s|-/g,''))}
 function clientIp(req){return String(req.headers['x-forwarded-for']||req.socket.remoteAddress||'unknown').split(',')[0].trim()}
+function hasImage(p){return typeof p.image==='string'&&p.image.length>20}
 
 async function api(req,res,url){
   if(req.method==='GET'&&url.pathname==='/api/health')return json(res,200,{ok:true,service:'cloud-key'});
   if(req.method==='GET'&&url.pathname==='/api/products'){
-    const db=readDB();return json(res,200,db.products.filter(p=>p.active&&p.stock!==0));
+    const db=readDB();return json(res,200,db.products.filter(p=>p.active&&p.stock!==0&&hasImage(p)));
+  }
+  const publicProduct=url.pathname.match(/^\/api\/products\/([^/]+)$/);
+  if(publicProduct&&req.method==='GET'){
+    const db=readDB();const p=db.products.find(p=>p.id===publicProduct[1]&&p.active&&hasImage(p));
+    if(!p)return json(res,404,{error:'not_found'});return json(res,200,p);
   }
   if(req.method==='GET'&&url.pathname==='/api/order-status'){
-    const number=(url.searchParams.get('number')||'').trim().toUpperCase();
-    const email=(url.searchParams.get('email')||'').trim().toLowerCase();
-    if(!number||!validEmail(email))return json(res,400,{error:'invalid_lookup'});
-    const db=readDB();const o=db.orders.find(o=>String(o.number).toUpperCase()===number&&String(o.customer?.email||'').toLowerCase()===email);
-    if(!o)return json(res,404,{error:'not_found'});
-    return json(res,200,{number:o.number,status:o.status,total:o.total,createdAt:o.createdAt});
+    const number=(url.searchParams.get('number')||'').trim().toUpperCase();const email=(url.searchParams.get('email')||'').trim().toLowerCase();
+    if(!number||!validEmail(email))return json(res,400,{error:'invalid_lookup'});const db=readDB();const o=db.orders.find(o=>String(o.number).toUpperCase()===number&&String(o.customer?.email||'').toLowerCase()===email);
+    if(!o)return json(res,404,{error:'not_found'});return json(res,200,{number:o.number,status:o.status,total:o.total,createdAt:o.createdAt});
   }
   if(req.method==='POST'&&url.pathname==='/api/checkout'){
-    try{
-      const b=await body(req);if(!b.name||!validEmail(b.email)||!validPhone(b.phone)||!Array.isArray(b.items)||!b.items.length)return json(res,400,{error:'invalid_order'});
-      const db=readDB();let subtotal=0;const items=[];
-      for(const x of b.items){const p=db.products.find(p=>p.id===x.id&&p.active);const qty=Math.max(1,Math.min(10,Number(x.qty)||1));if(!p||p.stock<qty)return json(res,409,{error:'out_of_stock',productId:x.id});subtotal+=p.price*qty;items.push({id:p.id,name:p.name,price:p.price,qty})}
+    try{const b=await body(req);if(!b.name||!validEmail(b.email)||!validPhone(b.phone)||!Array.isArray(b.items)||!b.items.length)return json(res,400,{error:'invalid_order'});const db=readDB();let subtotal=0;const items=[];
+      for(const x of b.items){const p=db.products.find(p=>p.id===x.id&&p.active&&hasImage(p));const qty=Math.max(1,Math.min(10,Number(x.qty)||1));if(!p||p.stock<qty)return json(res,409,{error:'out_of_stock',productId:x.id});subtotal+=p.price*qty;items.push({id:p.id,name:p.name,price:p.price,qty})}
       let discount=0;const coupon=(b.coupon||'').trim().toUpperCase();if(coupon){const c=db.coupons.find(c=>c.active&&c.code===coupon);if(c)discount=Math.round(subtotal*c.percent)/100}
-      const total=Math.max(0,subtotal-discount);const order={id:safeId(),number:orderNo(),createdAt:new Date().toISOString(),customer:{name:String(b.name).slice(0,100),email:String(b.email).slice(0,150),phone:String(b.phone).slice(0,30)},items,subtotal,discount,total,coupon,status:'pending_payment',payment:{provider:process.env.PAYMENT_PROVIDER||'demo',status:'not_started'},delivery:[]};
-      db.orders.unshift(order);writeDB(db);return json(res,201,{orderNumber:order.number,total:order.total,paymentReady:false});
+      const total=Math.max(0,subtotal-discount);const order={id:safeId(),number:orderNo(),createdAt:new Date().toISOString(),customer:{name:String(b.name).slice(0,100),email:String(b.email).slice(0,150),phone:String(b.phone).slice(0,30)},items,subtotal,discount,total,coupon,status:'pending_payment',payment:{provider:process.env.PAYMENT_PROVIDER||'demo',status:'not_started'},delivery:[]};db.orders.unshift(order);writeDB(db);return json(res,201,{orderNumber:order.number,total:order.total,paymentReady:false});
     }catch{return json(res,400,{error:'bad_request'})}
   }
   if(req.method==='POST'&&url.pathname==='/api/admin/login'){
@@ -55,10 +55,10 @@ async function api(req,res,url){
   if(url.pathname.startsWith('/api/admin/')&&!requireAdmin(req,res))return;
   if(req.method==='GET'&&url.pathname==='/api/admin/overview'){const db=readDB();return json(res,200,{products:db.products,orders:db.orders,coupons:db.coupons,codes:db.codes})}
   if(req.method==='POST'&&url.pathname==='/api/admin/products'){
-    try{const b=await body(req);if(!b.name||!Number.isFinite(Number(b.price)))return json(res,400,{error:'invalid_product'});const db=readDB();const p={id:b.id||safeId(),name:String(b.name).slice(0,150),category:b.category||'services',price:Number(b.price),oldPrice:b.oldPrice?Number(b.oldPrice):null,tag:b.tag||'رقمي',stock:Math.max(0,Number(b.stock)||0),active:b.active!==false,description:String(b.description||'').slice(0,500),cover:b.cover||'linear-gradient(135deg,#12384a,#19b9d6)'};db.products.push(p);writeDB(db);return json(res,201,p)}catch{return json(res,400,{error:'bad_request'})}
+    try{const b=await body(req);if(!b.name||!Number.isFinite(Number(b.price))||!hasImage(b))return json(res,400,{error:'image_required'});const db=readDB();const p={id:b.id||safeId(),name:String(b.name).slice(0,150),category:b.category||'services',price:Number(b.price),oldPrice:b.oldPrice?Number(b.oldPrice):null,tag:b.tag||'رقمي',stock:Math.max(0,Number(b.stock)||0),active:b.active!==false,description:String(b.description||'').slice(0,1000),image:b.image,cover:b.cover||'linear-gradient(135deg,#12384a,#19b9d6)'};db.products.push(p);writeDB(db);return json(res,201,p)}catch{return json(res,400,{error:'bad_request'})}
   }
   const pm=url.pathname.match(/^\/api\/admin\/products\/([^/]+)$/);if(pm&&req.method==='PATCH'){
-    try{const b=await body(req),db=readDB(),p=db.products.find(p=>p.id===pm[1]);if(!p)return json(res,404,{error:'not_found'});for(const k of ['name','category','price','oldPrice','tag','stock','active','description','cover'])if(k in b)p[k]=b[k];p.price=Number(p.price);p.stock=Math.max(0,Number(p.stock)||0);writeDB(db);return json(res,200,p)}catch{return json(res,400,{error:'bad_request'})}
+    try{const b=await body(req),db=readDB(),p=db.products.find(p=>p.id===pm[1]);if(!p)return json(res,404,{error:'not_found'});if(b.active===true&&!hasImage({...p,...b}))return json(res,400,{error:'image_required'});for(const k of ['name','category','price','oldPrice','tag','stock','active','description','cover','image'])if(k in b)p[k]=b[k];p.price=Number(p.price);p.stock=Math.max(0,Number(p.stock)||0);writeDB(db);return json(res,200,p)}catch{return json(res,400,{error:'bad_request'})}
   }
   if(pm&&req.method==='DELETE'){const db=readDB();db.products=db.products.filter(p=>p.id!==pm[1]);writeDB(db);return json(res,200,{ok:true})}
   const om=url.pathname.match(/^\/api\/admin\/orders\/([^/]+)$/);if(om&&req.method==='PATCH'){
@@ -70,6 +70,6 @@ async function api(req,res,url){
   return json(res,404,{error:'not_found'});
 }
 
-const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml','.ico':'image/x-icon'};
-const server=http.createServer(async(req,res)=>{res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'");const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);if(url.pathname.startsWith('/api/'))return api(req,res,url);let rel=url.pathname==='/'?'index.html':url.pathname.slice(1);if(rel==='admin')rel='admin.html';const file=path.normalize(path.join(PUBLIC,rel));if(!file.startsWith(PUBLIC))return res.end('Forbidden');fs.stat(file,(err,st)=>{if(err||!st.isFile()){res.writeHead(404);return res.end('Not found')}res.writeHead(200,{'content-type':mime[path.extname(file)]||'application/octet-stream','cache-control':path.extname(file)==='.html'?'no-cache':'public, max-age=3600'});fs.createReadStream(file).pipe(res)})});
+const mime={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'application/javascript; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon'};
+const server=http.createServer(async(req,res)=>{res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=()');res.setHeader('Content-Security-Policy',"default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; script-src 'self'; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'none'");const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);if(url.pathname.startsWith('/api/'))return api(req,res,url);let rel=url.pathname==='/'?'index.html':url.pathname.slice(1);if(rel==='admin')rel='admin.html';if(/^product\/[A-Za-z0-9-]+$/.test(rel))rel='product.html';const file=path.normalize(path.join(PUBLIC,rel));if(!file.startsWith(PUBLIC))return res.end('Forbidden');fs.stat(file,(err,st)=>{if(err||!st.isFile()){res.writeHead(404);return res.end('Not found')}res.writeHead(200,{'content-type':mime[path.extname(file)]||'application/octet-stream','cache-control':path.extname(file)==='.html'?'no-cache':'public, max-age=3600'});fs.createReadStream(file).pipe(res)})});
 server.listen(PORT,()=>console.log(`Cloud Key: http://localhost:${PORT}`));
