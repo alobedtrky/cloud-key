@@ -1,0 +1,27 @@
+{
+  "published": {
+    "texts": {
+      "announcement": "متجر رقمي سعودي • تسليم سريع • دعم عربي",
+      "heroEyebrow": "CLOUD KEY DIGITAL STORE",
+      "heroTitle": "منتجاتك الرقمية بحساب واحد.",
+      "heroDescription": "تسجيل دخول، رقم طلب فريد، تتبع مباشر، وسجل طلبات داخل حساب العميل.",
+      "heroPrimary": "تصفح المنتجات",
+      "heroSecondary": "تسجيل الدخول",
+      "productsEyebrow": "المتجر",
+      "productsTitle": "المنتجات",
+      "productsDescription": "اضغط على المنتج لفتح صفحة التفاصيل الخاصة به.",
+      "trackEyebrow": "تتبع الطلب",
+      "trackTitle": "ابحث برقم الطلب",
+      "trackDescription": "يلزم أن تكون مسجلًا بنفس الحساب الذي أنشأ الطلب.",
+      "trackButton": "بحث",
+      "faqEyebrow": "مساعدة",
+      "faqTitle": "الأسئلة الشائعة",
+      "footerCopyright": "© 2026 Cloud Key. جميع الحقوق محفوظة."
+    },
+    "theme": {"accent":"#25d4ef","accent2":"#72ecff","radius":21,"heroAlign":"right"},
+    "sectionOrder": ["hero","stats","products","why","track","faq"]
+  },
+  "draft": null,
+  "updatedAt": null,
+  "publishedAt": null
+}
