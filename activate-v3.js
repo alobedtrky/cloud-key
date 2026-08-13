@@ -1,0 +1,1 @@
+const fs=require('fs');fs.copyFileSync('public/index-v3.html','public/index.html');fs.copyFileSync('public/product-v3.html','public/product.html');require('./server-v3.js');
