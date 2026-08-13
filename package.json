@@ -1,8 +1,8 @@
 {
   "name": "cloud-key-store",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "Cloud Key digital storefront with a lightweight Node.js backend",
-  "scripts": {"start": "node server.js"},
+  "description": "Cloud Key digital storefront with customer accounts and order tracking",
+  "scripts": {"start": "node server-v3.js"},
   "engines": {"node": ">=18"}
 }
