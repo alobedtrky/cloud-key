@@ -1,0 +1,6 @@
+import{initializeApp}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';import{getAuth,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+let auth=null,current=null,resolveReady;const ready=new Promise(r=>resolveReady=r);
+async function boot(){try{const r=await fetch('/api/firebase-config');const cfg=await r.json();if(!r.ok||!cfg.apiKey)throw new Error('firebase_not_configured');auth=getAuth(initializeApp(cfg));onAuthStateChanged(auth,u=>{current=u||null;resolveReady?.(current);resolveReady=null;window.dispatchEvent(new CustomEvent('ck-auth-ready',{detail:{user:current}}));syncAccountUI()})}catch(e){resolveReady?.(null);resolveReady=null;console.error('Cloud Key auth:',e)}}
+async function getUser(){await ready;return current}async function getToken(){const u=await getUser();return u?u.getIdToken():''}async function requireUser(next=location.pathname+location.search){const u=await getUser();if(u)return u;location.href='/login?next='+encodeURIComponent(next);return null}
+function syncAccountUI(){document.querySelectorAll('[data-account-link]').forEach(a=>{a.href=current?'/profile':'/login';a.textContent=current?'حسابي':'تسجيل الدخول'})}
+window.CloudKeyAuth={ready,getUser,getToken,requireUser};boot();
