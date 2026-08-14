@@ -20,6 +20,7 @@ for(const file of ['public/index.html','public/product.html','public/login.html'
     if(!s.includes('/motion.js'))s=s.replace('</body>','<script src="/motion.js"></script></body>');
     if((file==='public/index.html'||file==='public/product.html')&&!s.includes('/cart-fx.js'))s=s.replace('</body>','<script src="/cart-fx.js"></script></body>');
     if(file==='public/index.html'&&!s.includes('/checkout-redirect.js'))s=s.replace('</body>','<script src="/checkout-redirect.js"></script></body>');
+    if(file==='public/product.html'&&!s.includes('/product-pro.js'))s=s.replace('</body>','<script src="/product-pro.js"></script></body>');
     fs.writeFileSync(file,s)
   }catch{}
 }
