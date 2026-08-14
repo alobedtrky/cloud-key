@@ -25,7 +25,7 @@ for(const file of ['public/index.html','public/product.html','public/login.html'
     fs.writeFileSync(file,s)
   }catch{}
 }
-for(const [file,script,type] of [['public/profile.html','/profile-orders.js',' type="module"'],['public/admin.html','/admin-search.js',''],['public/admin.html','/site-editor.js',''],['public/admin.html','/admin-pro.js',''],['public/admin.html','/admin-suite.js','']]){
+for(const [file,script,type] of [['public/profile.html','/profile-orders.js',' type="module"'],['public/admin.html','/admin-search.js',''],['public/admin.html','/site-editor.js',''],['public/admin.html','/admin-pro.js',''],['public/admin.html','/admin-suite.js',''],['public/admin.html','/admin-v6.js','']]){
   let s=fs.readFileSync(file,'utf8');if(!s.includes(script))s=s.replace('</body>',`<script${type} src="${script}"></script></body>`);fs.writeFileSync(file,s)
 }
 try{const f='public/login.js';let s=fs.readFileSync(f,'utf8');s=s.replaceAll("location.replace('/profile')","location.replace(new URLSearchParams(location.search).get('next')||'/profile')");fs.writeFileSync(f,s)}catch{}
