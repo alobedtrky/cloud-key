@@ -1,0 +1,29 @@
+name: Verify Cloud Key
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm install
+      - name: Check server syntax
+        run: |
+          node --check server-v3.js
+          node --check server-v4.js
+          node --check storage.js
+          node --check activate-v3.js
+      - name: Check browser scripts
+        run: |
+          node --check public/admin-pro.js
+          node --check public/checkout.js
+          node --check public/payment-result.js
+          node --check public/product-pro.js
+          node --check public/site-editor.js
