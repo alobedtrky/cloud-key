@@ -1,0 +1,1 @@
+(()=>{const f=document.querySelector('.footer-links');if(!f)return;const links=[['/about','من نحن'],['/contact','تواصل معنا'],['/privacy','الخصوصية'],['/terms','الشروط'],['/refunds','الاسترجاع']];links.forEach(([href,text])=>{if(f.querySelector(`a[href="${href}"]`))return;const a=document.createElement('a');a.href=href;a.textContent=text;f.appendChild(a)})})();
