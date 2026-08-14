@@ -1,4 +1,11 @@
 const fs=require('fs');
+if(process.env.NODE_ENV==='production'){
+  const missing=[];
+  if(!process.env.ADMIN_USER)missing.push('ADMIN_USER');
+  if(!process.env.ADMIN_PASSWORD||process.env.ADMIN_PASSWORD.length<12)missing.push('ADMIN_PASSWORD(12+ chars)');
+  if(!process.env.SESSION_SECRET||process.env.SESSION_SECRET.length<32)missing.push('SESSION_SECRET(32+ chars)');
+  if(missing.length){console.error('Cloud Key security configuration missing:',missing.join(', '));process.exit(1)}
+}
 fs.copyFileSync('public/index-v3.html','public/index.html');
 fs.copyFileSync('public/product-v3.html','public/product.html');
 for(const file of ['public/index.html','public/product.html','public/login.html','public/profile.html','public/admin.html']){
@@ -6,8 +13,10 @@ for(const file of ['public/index.html','public/product.html','public/login.html'
     let s=fs.readFileSync(file,'utf8');
     if(!s.includes('/v4.css'))s=s.replace('</head>','<link rel="stylesheet" href="/v4.css"></head>');
     if(!s.includes('/motion.css'))s=s.replace('</head>','<link rel="stylesheet" href="/motion.css"></head>');
+    if((file==='public/index.html'||file==='public/product.html')&&!s.includes('/cart-fx.css'))s=s.replace('</head>','<link rel="stylesheet" href="/cart-fx.css"></head>');
     if(file!=='public/admin.html'&&!s.includes('/cms-site.js'))s=s.replace('</body>','<script src="/cms-site.js"></script></body>');
     if(!s.includes('/motion.js'))s=s.replace('</body>','<script src="/motion.js"></script></body>');
+    if((file==='public/index.html'||file==='public/product.html')&&!s.includes('/cart-fx.js'))s=s.replace('</body>','<script src="/cart-fx.js"></script></body>');
     fs.writeFileSync(file,s)
   }catch{}
 }
