@@ -1,0 +1,1 @@
+window.addEventListener('load',()=>{const b=document.getElementById('checkoutBtn');if(b)b.onclick=()=>{const cart=JSON.parse(localStorage.getItem('ck-cart')||'[]');if(!cart.length){document.getElementById('toast')?.classList.add('show');return}location.href='/checkout'}});
